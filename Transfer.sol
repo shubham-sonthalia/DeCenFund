@@ -7,23 +7,25 @@ contract Transfer
     
     mapping (address => uint) balances;
     uint projectID = 0;
-    enum STATE{INPROGRESS, FINISHED};
+    enum STATE{INPROGRESS, FINISHED}
     struct Project
     {
         uint target;
         uint days;
         address beneficiary;
-        uint projectId
+        uint projectId;
         STATE state;
     }
-    Project projects[] = new Project[];
+    Project[] projects;
     mapping(address => uint) noOfProjects;
-    function addProject(uint _target, uint _days, address beneficiary)
+
+    function addProject (uint _target, uint _days, address beneficiary) external
     {
         require(noOfProjects[msg.sender] <= 1);
-        Project newProject = new Project(_target, _days, beneficiary,projectID, INPROGRESS);
+        Project memory newProject = Project(_target, _days, beneficiary, projectID, STATE.INPROGRESS);
         projectID++;
     }
+    
     function donate() external payable
     {
         balances[msg.sender] += msg.value;
@@ -33,6 +35,7 @@ contract Transfer
     {
         return address(this).balance;
     }
+    
     function showAddress() external view returns(address payable)
     {
         address myaddress = address(this);
@@ -40,6 +43,7 @@ contract Transfer
         return wallet;
         
     }
+    
     /////////////////////////////////////////////////////////////////////////////////
     // Sending ether from this contract to another contract or any other user. 
     
