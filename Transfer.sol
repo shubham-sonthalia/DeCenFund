@@ -1,56 +1,65 @@
 pragma solidity >=0.7.0 <0.9.0;
 
-contract Transfer
+contract Project 
 {
-    
-    // Receiving ether to this contract.  
-    
-    mapping (address => uint) balances;
-    uint projectID = 0;
-    enum STATE{INPROGRESS, FINISHED}
-    struct Project
+    // A data type to store the state of the project. 
+    enum STATE {INPROGRESS, FINISHED}
+    // A struct that stores all the details unique to the project. 
+    struct Properties
     {
-        uint target;
-        uint days;
-        address beneficiary;
-        uint projectId;
-        STATE state;
+        uint targetAmount;
+        uint targetInDays;
+        address creator;
+        string title;
     }
-    Project[] projects;
-    mapping(address => uint) noOfProjects;
-
-    function addProject (uint _target, uint _days, address beneficiary) external
-    {
-        require(noOfProjects[msg.sender] <= 1);
-        Project memory newProject = Project(_target, _days, beneficiary, projectID, STATE.INPROGRESS);
-        projectID++;
-    }
-    
-    function donate() external payable
-    {
-        balances[msg.sender] += msg.value;
-    }
-    
-    function balanceOf() external view returns (uint) 
-    {
-        return address(this).balance;
-    }
-    
-    function showAddress() external view returns(address payable)
-    {
-        address myaddress = address(this);
-        address payable wallet = payable(myaddress);
-        return wallet;
+    // A struct that holds vital information of a donation. 
+     struct Donation 
+     {
+        uint amount;
+        address donor;
+     }
+     // Some state variables.
+     uint public collectedAmount;
+     uint public donorsCount;
+     STATE public state;
+     Properties public properties;
+     
+     
+     mapping (address => uint) donors;
+     mapping (uint => Properties) projects;
+     
+     
+     constructor (uint _targetAmount, uint _targetInDays, string memory _title) {
+         
+        require(_targetAmount > 0, "The target amount has to be greater than 0");
+        require(_targetInDays > 0, "The deadline must be in the future");
+        require(bytes(_title).length > 0 && bytes(_title).length < 20, "Please enter a valid title.");
         
-    }
-    
-    /////////////////////////////////////////////////////////////////////////////////
-    // Sending ether from this contract to another contract or any other user. 
-    
-    function sendMoney(address payable recipient) external {
-        uint sum = 0;
         
-        recipient.transfer(100);
+        properties = Properties({
+            targetAmount: _targetAmount,
+            targetInDays: _targetInDays,
+            title: _title,
+            creator: msg.sender
+        });
+        
+        collectedAmount = 0;
+        donorsCount = 0;
+        state = STATE.INPROGRESS;
+        // After receiving all this information, my project is created. 
     }
-
+}
+contract Transaction
+{
+    enum STATUS{INITIATED,FAILED, COMPLETED}
+    enum TYPE {Unknown, Deposit, Withdrawal}
+    struct features 
+    {
+        address fromAccount;
+        address toAccount;
+        uint amount;
+        TYPE typeOfTxn;
+        STATUS currentStatus;
+        uint timestamp;
+    } 
 }
