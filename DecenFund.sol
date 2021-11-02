@@ -25,7 +25,7 @@ contract DecenFund{
     }
  
 
-    function createProject(uint _targetAmount, uint _targetInDays, string calldata _title) external returns (Project projectAddress) {
+    function createProject(uint _targetAmount, uint _targetInDays, string calldata _title) external payable returns (Project projectAddress) {
 
         if (_targetAmount <= 0) {
             emit Error("Project funding goal must be greater than 0");
@@ -59,13 +59,18 @@ contract DecenFund{
         }
 
         // Check that fund call was successful
-        if (deployedProject.fund(msg.sender)) {
+        if (deployedProject.fund(msg.sender, msg.value)) {
             emit DonationSent(_projectAddress, msg.sender, msg.value);
             return true;
         } else {
             emit Error("Contribution did not send successfully");
             return false;
         }
+    }
+    
+    function getStatus(address _projectAddress, address _d) external view returns (uint, uint){
+        Project p = Project(_projectAddress);
+        return (p.collectedAmount(), p.donors(_d));
     }
 
     function kill() public onlyOwner {
@@ -76,5 +81,3 @@ contract DecenFund{
         revert('Fallback error');
     }
 }
-
-
