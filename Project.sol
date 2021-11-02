@@ -34,7 +34,7 @@ contract Project
      address public DecenFund; 
      
      
-     mapping (address => uint) donors;
+     mapping (address => uint) public donors;
      mapping (uint => Properties) projects;
      
     event EventDonationReceived(address projectAddress, address contributor, uint amount);
@@ -79,7 +79,7 @@ contract Project
                 address(this));
     }
     
-    function fund(address _donator) payable onlyDecenFund external returns (bool successful) 
+    function fund(address _donator, uint _fval) payable onlyDecenFund external returns (bool successful) 
     {
         address payable _Donator = payable(_donator);
   
@@ -87,7 +87,7 @@ contract Project
         {
             emit EventFundingFailed(address(this), collectedAmount);
             
-            if (!_Donator.send(msg.value)) 
+            if (!_Donator.send(_fval)) 
             {
                 emit Error("Project deadline has passed, problem returning contribution");
                 revert("Project deadline has passed, problem returning contribution");
@@ -99,7 +99,7 @@ contract Project
         if (collectedAmount >= properties.targetAmount) 
         {
             emit EventTargetedAmountReached(address(this), collectedAmount);
-            if (!_Donator.send(msg.value)) 
+            if (!_Donator.send(_fval)) 
             {
                 emit Error("Project deadline has passed, problem returning contribution");
                 revert("Project deadline has passed, problem returning contribution");
@@ -112,9 +112,9 @@ contract Project
         uint prevContributionBalance = donors[_donator];
 
         // Update contributor's balance
-        donors[_donator] += msg.value;
+        donors[_donator] += _fval;
 
-        collectedAmount += msg.value;
+        collectedAmount += _fval;
 
 
         // Check if contributor is new and if so increase count
@@ -122,7 +122,7 @@ contract Project
             donorsCount++;
         }
 
-       emit  EventDonationReceived(address(this), _donator, msg.value);
+       emit  EventDonationReceived(address(this), _donator, _fval);
 
         // Check again to see whether the last contribution met the fundingGoal 
         if (collectedAmount >= properties.targetAmount) {
