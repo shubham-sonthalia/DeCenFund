@@ -72,11 +72,18 @@ contract DecenFund{
         Project p = Project(_projectAddress);
         return (p.collectedAmount(), p.donors(_d));
     }
-
+    
+    function getCreatorBalance(address _projectAddress) external view returns (uint) {
+        Project p = Project(_projectAddress);
+        address a = p.creator();
+        return a.balance;
+    }
+    
     function kill() public onlyOwner {
     address payable Owner = payable(owner);
         selfdestruct(Owner);
     }
+    
     fallback() external{
         revert('Fallback error');
     }
