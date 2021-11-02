@@ -16,7 +16,6 @@ contract Project
     {
         uint targetAmount;
         uint deadline;
-        address creator;
         string title;
         uint startTime;
     }
@@ -32,7 +31,7 @@ contract Project
      STATE public state;
      Properties public properties;
      address public DecenFund; 
-     
+     address public creator;
      
      mapping (address => uint) public donors;
      mapping (uint => Properties) projects;
@@ -52,6 +51,7 @@ contract Project
         }
         _;
     }
+    
      constructor (uint _targetAmount, uint _targetInDays, string memory _title, address _creator) {
 
         uint deadline = block.timestamp + _targetInDays*86400;
@@ -60,19 +60,18 @@ contract Project
             targetAmount: _targetAmount,
             deadline: deadline,
             title: _title,
-            creator: _creator,
             startTime:block.timestamp
         });
+        creator = _creator;
         collectedAmount = 0;
         donorsCount = 0;
         state = STATE.INPROGRESS;
         // After receiving all this information, my project is created. 
     }
-    function getProject() public view returns (string memory, uint, uint, address, uint, uint, address, address) {
+    function getProject() public view returns (string memory, uint, uint, uint, uint, address, address) {
         return (properties.title,
                 properties.targetAmount,
                 properties.deadline,
-                properties.creator,
                 collectedAmount,
                 donorsCount,
                 DecenFund,
@@ -127,19 +126,24 @@ contract Project
         // Check again to see whether the last contribution met the fundingGoal 
         if (collectedAmount >= properties.targetAmount) {
             emit EventTargetedAmountReached(address(this), collectedAmount);
-            payout();
+            if(!payout()){
+                emit Error("Payout not called");
+                revert("Payout not called");
+            }
+            // payout();
         }
 
         return true;
     }
+    
     function payout() private returns (bool successful) 
     {
         uint amount = collectedAmount;
 
         // prevent re-entrancy
         collectedAmount = 0;
-        address payable Creator = payable(properties.creator);
-        if (Creator.send(amount)) 
+        address payable Creator = payable(creator);
+        if (Creator.send(amount))
         {
             return true;
         } 
