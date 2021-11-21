@@ -1,4 +1,5 @@
 pragma solidity >=0.7.0 <0.9.0;
+import './DecenFund.sol';
 
 // SPDX-License-Identifier:UNLICENSED
 // To do: 
@@ -18,6 +19,7 @@ contract Project
         uint deadline;
         string title;
         uint startTime;
+        string emailIDOfCreator;
     }
     // A struct that holds vital information of a donation. 
      struct Donation 
@@ -30,8 +32,8 @@ contract Project
      uint public donorsCount;
      STATE public state;
      Properties public properties;
-     address public DecenFund; 
-     address public creator;
+     address public DF; 
+     address payable public creator;
      
      mapping (address => uint) public donors;
      mapping (uint => Properties) projects;
@@ -44,7 +46,7 @@ contract Project
     event Error(string message);
     
     modifier onlyDecenFund {
-        if (DecenFund != msg.sender)
+        if (DF != msg.sender)
         {
             emit Error("Unauthrorized access!!");
             revert("Unauthrorized access!!");
@@ -52,15 +54,17 @@ contract Project
         _;
     }
     
-     constructor (uint _targetAmount, uint _targetInDays, string memory _title, address _creator) {
+     constructor (uint _targetAmount, uint _targetInDays, string memory _title, address payable _creator, string memory _email) {
 
-        uint deadline = block.timestamp + _targetInDays*86400;
-        DecenFund = msg.sender;
+        // uint deadline = block.timestamp + _targetInDays*86400;
+        uint deadline = block.timestamp + _targetInDays*60;
+        DF = msg.sender;
         properties = Properties({
             targetAmount: _targetAmount,
             deadline: deadline,
             title: _title,
-            startTime:block.timestamp
+            startTime:block.timestamp,
+            emailIDOfCreator:_email
         });
         creator = _creator;
         collectedAmount = 0;
@@ -74,26 +78,17 @@ contract Project
                 properties.deadline,
                 collectedAmount,
                 donorsCount,
-                DecenFund,
+                DF,
                 address(this));
     }
-    
     function fund(address _donator, uint _fval) payable onlyDecenFund external returns (bool successful) 
     {
         address payable _Donator = payable(_donator);
-  
-        if (block.timestamp > properties.deadline) 
+        if(block.timestamp > properties.deadline) 
         {
-            emit EventFundingFailed(address(this), collectedAmount);
-            
-            if (!_Donator.send(_fval)) 
-            {
-                emit Error("Project deadline has passed, problem returning contribution");
-                revert("Project deadline has passed, problem returning contribution");
-            } 
-            return false;
+            payout();   
+            emit EventFundingFailed(address(this),collectedAmount);
         }
-
         // 2. Check that funding goal has not already been met
         if (collectedAmount >= properties.targetAmount) 
         {
@@ -126,32 +121,23 @@ contract Project
         // Check again to see whether the last contribution met the fundingGoal 
         if (collectedAmount >= properties.targetAmount) {
             emit EventTargetedAmountReached(address(this), collectedAmount);
-            if(!payout()){
-                emit Error("Payout not called");
-                revert("Payout not called");
-            }
-            // payout();
+            // if(!payout()){
+            //     emit Error("Payout not called");
+            //     revert("Payout not called");
+            // }
+            payout();
         }
-
         return true;
     }
-    
-    function payout() private returns (bool successful) 
+    function payout() private 
     {
         uint amount = collectedAmount;
-
         // prevent re-entrancy
         collectedAmount = 0;
-        address payable Creator = payable(creator);
-        if (Creator.send(amount))
-        {
-            return true;
-        } 
-        else 
-        {
-            collectedAmount = amount;
-            return false;
-        }
+        DecenFund d = DecenFund(DF);
+        d.receivePayment(creator, amount);
+        bytes32 projectHash = keccak256(abi.encodePacked(properties.targetAmount, properties.deadline, properties.title, properties.emailIDOfCreator));
+        d.deleteProject(projectHash);
     }
     fallback() external{
         revert('Fallback error');
