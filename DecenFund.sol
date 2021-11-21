@@ -2,49 +2,51 @@ pragma solidity >=0.7.0 < 0.9.0;
 
 import "./Project.sol";
 
+
 // SPDX-License-Identifier:UNLICENSED
 contract DecenFund{
     address public owner;
     uint public numOfProjects;
-
-    mapping (uint => Project) public projects;
+    address[] public listOfBeneficiaries;
+    mapping (bytes32 => Project) public projects;
+    mapping(address => uint) collectedAmount;
 
     event EventProjectCreated(uint id, string title, Project addr, address creator);
     event DonationSent(address projectAddress, address beneficiary, uint amount);
 
     event Error(string message);
-
+    event ProjectDeleted(address projectAddress);
     modifier onlyOwner {
         require(msg.sender == owner, "You don't have the rights to perform this action.");
         _;
     }
-    
     constructor() {
         owner = msg.sender;
         numOfProjects = 0;
     }
- 
-
-    function createProject(uint _targetAmount, uint _targetInDays, string calldata _title) external payable returns (Project projectAddress) {
-
+    function createProject(string calldata _name, string calldata _age, string calldata _emailID, uint _targetAmount, uint _targetInDays, string calldata _title) external payable 
+    returns (Project projectAddress, address _beneficiary) {
+        
+        address payable benAdd = payable(address(uint160(uint256(keccak256(abi.encodePacked(_name, _age, _emailID))))));
+        listOfBeneficiaries.push(benAdd);
         if (_targetAmount <= 0) {
             emit Error("Project funding goal must be greater than 0");
             revert("Project funding goal must be greater than 0");
         }
-
+        
         if (_targetInDays <= 0) {
             emit Error("Project deadline must be greater than the current block");
             revert("Project deadline must be greater than the current block");
         }
-
-        Project p = new Project(_targetAmount, _targetInDays, _title, msg.sender);
-        projects[numOfProjects] = p;
-        emit EventProjectCreated(numOfProjects, _title, p, msg.sender);
+        
+        bytes32 projectHash = keccak256(abi.encodePacked(_targetAmount, _targetInDays, _title, _emailID));
+        Project p = new Project(_targetAmount, _targetInDays, _title, benAdd, _emailID);
+        projects[projectHash] = p;
+        emit EventProjectCreated(numOfProjects, _title, p, benAdd);
         numOfProjects++;
-        return p;
+        return (p, benAdd);
     }
-
-   
+    
     function donate(address _projectAddress) external payable returns (bool successful) { 
         
         if(msg.value <= 0){
@@ -53,7 +55,7 @@ contract DecenFund{
         }
         Project deployedProject = Project(_projectAddress);
         // Check that there is actually a Project contract at that address
-        if (deployedProject.DecenFund() == address(0)) {
+        if (deployedProject.DF() == address(0)) {
             emit Error("Project contract not found at address");
             revert("Project contract not found at address");
         }
@@ -67,24 +69,23 @@ contract DecenFund{
             return false;
         }
     }
-    
-    function getStatus(address _projectAddress, address _d) external view returns (uint, uint){
-        Project p = Project(_projectAddress);
-        return (p.collectedAmount(), p.donors(_d));
+    function deleteProject(bytes32 _hash) public {
+        numOfProjects--;
+        delete projects[_hash];
+        emit ProjectDeleted(msg.sender);
     }
-    
-    function getCreatorBalance(address _projectAddress) external view returns (uint) {
-        Project p = Project(_projectAddress);
-        address a = p.creator();
-        return a.balance;
+    function getCreatorBalance(address _beneficiaryAddress) external view returns (uint) {
+        return collectedAmount[_beneficiaryAddress];
     }
-    
+    function receivePayment(address _beneficiary, uint _payment) public payable {
+        collectedAmount[_beneficiary] += _payment;
+    }
     function kill() public onlyOwner {
     address payable Owner = payable(owner);
         selfdestruct(Owner);
     }
-    
     fallback() external{
         revert('Fallback error');
     }
+    
 }
