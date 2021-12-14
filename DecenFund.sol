@@ -3,12 +3,15 @@ pragma solidity >=0.7.0 < 0.9.0;
 import "./Project.sol";
 
 
-// SPDX-License-Identifier:UNLICENSED
+/** @title contract to manage projects */
 contract DecenFund{
     address public owner;
     uint public numOfProjects;
+    // maintain array of beneficiary addresses
     address[] public listOfBeneficiaries;
+    // mapping of project hash to project object
     mapping (bytes32 => Project) public projects;
+    // maintain the collected amount so for a project
     mapping(address => uint) collectedAmount;
 
     event EventProjectCreated(uint id, string title, Project addr, address creator);
@@ -25,6 +28,16 @@ contract DecenFund{
         numOfProjects = 0;
     }
     
+    /** @dev Create a new project for a beneficiary.
+      * @param _name beneficiary name
+      * @param _age beneficiary age
+      * @param _emailID email address of beneficiary
+      * @param _targetAmount target amount for project in wei's
+      * @param _targetInDays deadline for project in days
+      * @param _title Project Title
+      * @return projectAddress The address of newly created project
+      * @return _beneficiary The address of beneficiary
+      */
     function createProject(string calldata _name, string calldata _age, string calldata _emailID, uint _targetAmount, uint _targetInDays, string calldata _title) external payable 
     returns (Project projectAddress, address _beneficiary) {
         
@@ -48,6 +61,10 @@ contract DecenFund{
         return (p, benAdd);
     }
     
+    /** @dev Donate to a project address
+      * @param _projectAddress The address of an ongoing project
+      * @return successful Indicates if the transfer was successful or not
+      */
     function donate(address _projectAddress) external payable returns (bool successful) { 
         
         if(msg.value <= 0){
@@ -70,17 +87,32 @@ contract DecenFund{
             return false;
         }
     }
+
+    /** @dev Delete a project
+      * @param _hash Hash of the project address
+      */
     function deleteProject(bytes32 _hash) public {
         numOfProjects--;
         delete projects[_hash];
         emit ProjectDeleted(msg.sender);
     }
+
+    /** @dev Get balance of the beneficiary
+      * @param _beneficiaryAddress address of beneficiary
+      * @return balance amount
+      */
     function getCreatorBalance(address _beneficiaryAddress) external view returns (uint) {
         return collectedAmount[_beneficiaryAddress];
     }
+
+    /** @dev Transfer funds to beneficiary
+      * @param _beneficiary address of beneficiary
+      * @param _payment amount to deposit
+      */    
     function receivePayment(address _beneficiary, uint _payment) public payable {
         collectedAmount[_beneficiary] += _payment;
     }
+    
     fallback() external{
         revert('Fallback error');
     }
