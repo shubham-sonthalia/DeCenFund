@@ -3,8 +3,12 @@ import './DecenFund.sol';
 
 // SPDX-License-Identifier:UNLICENSED
 
+/** @title Project Contract */
 contract Project 
-{
+{   
+    /*
+    A struct to encapsulate the attributes of a Project 
+    */
     struct Properties
     {
         uint targetAmount;
@@ -20,6 +24,7 @@ contract Project
      address public DF; 
      address payable public creator;
      
+     // stores the projects as a mapping of project number with their properties
      mapping (uint => Properties) projects;
      
     event EventDonationReceived(address projectAddress, address contributor, uint amount);
@@ -29,6 +34,9 @@ contract Project
     
     event Error(string message);
     
+    /*
+    modifier to only allow the owner of decenfund contract to create projects
+    */
     modifier onlyDecenFund {
         if (DF != msg.sender)
         {
@@ -37,7 +45,8 @@ contract Project
         }
         _;
     }
-     constructor (uint _targetAmount, uint _targetInDays, string memory _title, address payable _creator, string memory _email) {
+    
+    constructor (uint _targetAmount, uint _targetInDays, string memory _title, address payable _creator, string memory _email) {
 
         uint deadline = block.timestamp + _targetInDays*86400;
         DF = msg.sender;
@@ -52,6 +61,11 @@ contract Project
         collectedAmount = 0;
     }
 
+    /** @dev  Transfer funds to the project & call payout incase of reaching the target amount
+      * @param _donator the address of donator
+      * @param _fval donation amount in wei's
+      * @return successful boolean value indicating transfer status
+    */   
     function fund(address _donator, uint _fval) payable onlyDecenFund external returns (bool successful) 
     {
         address payable _Donator = payable(_donator);
@@ -82,6 +96,8 @@ contract Project
         }
         return true;
     }
+
+    /** @dev Transfer collected amount to beneficiary address & close the project */
     function payout() private 
     {
         uint amount = collectedAmount;
@@ -92,6 +108,7 @@ contract Project
         bytes32 projectHash = keccak256(abi.encodePacked(properties.targetAmount, properties.deadline, properties.title, properties.emailIDOfCreator));
         d.deleteProject(projectHash);
     }
+
     fallback() external{
         revert('Fallback error');
     }
