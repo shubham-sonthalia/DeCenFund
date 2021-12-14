@@ -24,6 +24,7 @@ contract DecenFund{
         owner = msg.sender;
         numOfProjects = 0;
     }
+    
     function createProject(string calldata _name, string calldata _age, string calldata _emailID, uint _targetAmount, uint _targetInDays, string calldata _title) external payable 
     returns (Project projectAddress, address _beneficiary) {
         
@@ -79,10 +80,6 @@ contract DecenFund{
     }
     function receivePayment(address _beneficiary, uint _payment) public payable {
         collectedAmount[_beneficiary] += _payment;
-    }
-    function kill() public onlyOwner {
-    address payable Owner = payable(owner);
-        selfdestruct(Owner);
     }
     fallback() external{
         revert('Fallback error');
